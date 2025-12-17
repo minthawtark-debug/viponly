@@ -18,7 +18,7 @@ const Index = () => {
       <div className="relative z-10 flex flex-col items-center justify-center px-6 py-12">
         {/* Crown Icon */}
         <div className="mb-8 animate-fade-in">
-          <CrownIcon />
+          <CrownIcon className="w-20 h-20 md:w-24 md:h-24" />
         </div>
 
         {/* Title */}
