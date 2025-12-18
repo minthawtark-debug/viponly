@@ -110,6 +110,12 @@
     background-clip: text;
   }
 
+  .text-gold-outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px hsl(var(--gold));
+    letter-spacing: 0.25em;
+  }
+
   .bg-gradient-dark {
     background: var(--gradient-dark);
   }

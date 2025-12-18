@@ -22,7 +22,7 @@ const Index = () => {
         </div>
 
         {/* Title */}
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold tracking-widest text-gold-gradient mb-6 animate-fade-in-delay text-center">
+        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-gold-outline mb-6 animate-fade-in-delay text-center">
           VIP CLUB
         </h1>
 
