@@ -116,6 +116,24 @@
     letter-spacing: 0.25em;
   }
 
+  .text-gold-shimmer {
+    color: transparent;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--gold-dark)) 0%,
+      hsl(var(--gold-light)) 25%,
+      hsl(var(--gold)) 50%,
+      hsl(var(--gold-light)) 75%,
+      hsl(var(--gold-dark)) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-stroke: 1px hsl(var(--gold) / 0.3);
+    letter-spacing: 0.25em;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
   .bg-gradient-dark {
     background: var(--gradient-dark);
   }
