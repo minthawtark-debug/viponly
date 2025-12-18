@@ -4,6 +4,7 @@ import { MemberCard } from '@/components/MemberCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import CrownIcon from '@/components/CrownIcon';
+import { ArrowLeft } from 'lucide-react';
 
 const Members = () => {
   const { data: members = [], isLoading } = useQuery({
@@ -29,10 +30,10 @@ const Members = () => {
             <CrownIcon className="h-8 w-8 text-gold" />
             <span className="font-display text-xl font-bold text-gold-gradient">VIP CLUB</span>
           </Link>
-          <nav className="flex gap-4">
-            <Link to="/members" className="font-medium text-gold">Members</Link>
-            <Link to="/vip" className="text-muted-foreground transition-colors hover:text-gold">VIP</Link>
-          </nav>
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-gold">
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </Link>
         </div>
       </header>
 
