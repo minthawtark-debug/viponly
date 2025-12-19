@@ -1,33 +1,27 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MemberCard } from '@/components/MemberCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import CrownIcon from '@/components/CrownIcon';
 import { ArrowLeft, ShieldX } from 'lucide-react';
-import { useEffect, useState } from 'react';
-
-const VIP_ACCESS_KEY = 'vip_access_session';
 
 const VIP = () => {
-  const [searchParams] = useSearchParams();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
-  // Check for access token in URL or session
+  // Check for access from session storage
   useEffect(() => {
-    const accessToken = searchParams.get('access');
-    const storedAccess = sessionStorage.getItem(VIP_ACCESS_KEY);
+    const vipAccess = sessionStorage.getItem('vip_access');
+    const targetPage = sessionStorage.getItem('target_page');
 
-    if (accessToken) {
-      // Store access in session
-      sessionStorage.setItem(VIP_ACCESS_KEY, accessToken);
-      setHasAccess(true);
-    } else if (storedAccess) {
+    // Allow access if they have vip_access and target_page is 'vip'
+    if (vipAccess === 'true' && targetPage === 'vip') {
       setHasAccess(true);
     } else {
       setHasAccess(false);
     }
-  }, [searchParams]);
+  }, []);
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ['vip-members'],
@@ -49,7 +43,7 @@ const VIP = () => {
     return (
       <div className="min-h-screen bg-gradient-radial flex items-center justify-center">
         <div className="animate-pulse">
-          <CrownIcon className="h-16 w-16 text-gold" />
+          <CrownIcon className="h-16 w-16 text-primary" />
         </div>
       </div>
     );
@@ -60,15 +54,15 @@ const VIP = () => {
     return (
       <div className="min-h-screen bg-gradient-radial">
         {/* Header */}
-        <header className="border-b border-gold/20 bg-background/80 backdrop-blur-sm">
+        <header className="border-b border-primary/20 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto flex items-center justify-between px-4 py-4">
             <Link to="/" className="flex items-center gap-2 group">
-              <CrownIcon className="h-8 w-8 text-gold transition-transform group-hover:scale-110" />
+              <CrownIcon className="h-8 w-8 text-primary transition-transform group-hover:scale-110" />
               <span className="font-display text-xl font-bold text-gold-gradient">VIP CLUB</span>
             </Link>
             <Link 
               to="/" 
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 text-muted-foreground transition-all hover:text-gold hover:border-gold hover:bg-gold/5"
+              className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 text-muted-foreground transition-all hover:text-primary hover:border-primary hover:bg-primary/5"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="text-sm font-medium">Back</span>
@@ -90,7 +84,7 @@ const VIP = () => {
             </p>
             <Link 
               to="/"
-              className="inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-full bg-gold/10 border border-gold/30 text-gold font-medium transition-all hover:bg-gold/20 hover:border-gold"
+              className="inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-full bg-primary/10 border border-primary/30 text-primary font-medium transition-all hover:bg-primary/20 hover:border-primary"
             >
               <ArrowLeft className="h-4 w-4" />
               Return Home
@@ -104,15 +98,15 @@ const VIP = () => {
   return (
     <div className="min-h-screen bg-gradient-radial">
       {/* Header */}
-      <header className="border-b border-gold/20 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-primary/20 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2 group">
-            <CrownIcon className="h-8 w-8 text-gold transition-transform group-hover:scale-110" />
+            <CrownIcon className="h-8 w-8 text-primary transition-transform group-hover:scale-110" />
             <span className="font-display text-xl font-bold text-gold-gradient">VIP CLUB</span>
           </Link>
           <Link 
             to="/" 
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 text-muted-foreground transition-all hover:text-gold hover:border-gold hover:bg-gold/5"
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 text-muted-foreground transition-all hover:text-primary hover:border-primary hover:bg-primary/5"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm font-medium">Back</span>
@@ -130,7 +124,7 @@ const VIP = () => {
           <p className="text-muted-foreground text-xl md:text-2xl tracking-wider">
             会员专区
           </p>
-          <div className="mt-6 w-24 h-px bg-gradient-to-r from-transparent via-gold to-transparent mx-auto" />
+          <div className="mt-6 w-24 h-px bg-gradient-to-r from-transparent via-primary to-transparent mx-auto" />
         </div>
 
         {/* Members Grid */}

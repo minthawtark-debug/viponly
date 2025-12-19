@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_links: {
+        Row: {
+          allow_share: boolean
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_permanent: boolean
+          is_used: boolean
+          target_page: Database["public"]["Enums"]["target_page_type"]
+          token: string
+        }
+        Insert: {
+          allow_share?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_permanent?: boolean
+          is_used?: boolean
+          target_page: Database["public"]["Enums"]["target_page_type"]
+          token: string
+        }
+        Update: {
+          allow_share?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_permanent?: boolean
+          is_used?: boolean
+          target_page?: Database["public"]["Enums"]["target_page_type"]
+          token?: string
+        }
+        Relationships: []
+      }
       member_images: {
         Row: {
           created_at: string
@@ -121,6 +154,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      target_page_type: "member" | "vip"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -249,6 +283,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      target_page_type: ["member", "vip"],
     },
   },
 } as const
