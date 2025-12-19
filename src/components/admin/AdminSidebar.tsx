@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import CrownIcon from '@/components/CrownIcon';
-import { Users, UserPlus, LogOut, LayoutDashboard } from 'lucide-react';
+import { Users, UserPlus, LogOut, LayoutDashboard, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/members', icon: Users, label: 'Members' },
   { to: '/admin/members/new', icon: UserPlus, label: 'Add Member' },
+  { to: '/admin/access-links', icon: LinkIcon, label: 'Access Links' },
 ];
 
 export function AdminSidebar() {
