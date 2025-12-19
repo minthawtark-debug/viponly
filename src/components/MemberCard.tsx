@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { ProfileModal } from './ProfileModal';
 
 interface MemberCardProps {
   member: {
@@ -15,83 +13,61 @@ interface MemberCardProps {
 }
 
 export function MemberCard({ member }: MemberCardProps) {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  const { data: albumImages = [] } = useQuery({
-    queryKey: ['member-album', member.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('member_images')
-        .select('*')
-        .eq('member_id', member.id)
-        .order('display_order', { ascending: true });
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-gold/20 bg-card/50 backdrop-blur-sm transition-all hover:border-gold/40 hover:shadow-lg hover:shadow-gold/10">
-      {/* Cover Image */}
-      <div className="aspect-[3/4] overflow-hidden">
-        {member.cover_image_url ? (
-          <img
-            src={member.cover_image_url}
-            alt={member.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted">
-            <span className="text-muted-foreground">No Image</span>
-          </div>
-        )}
-      </div>
+    <>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="group text-left w-full overflow-hidden rounded-xl border border-gold/20 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-gold/50 hover:shadow-gold focus:outline-none focus:ring-2 focus:ring-gold/50"
+      >
+        {/* Cover Image */}
+        <div className="relative aspect-[3/4] overflow-hidden">
+          {member.cover_image_url ? (
+            <img
+              src={member.cover_image_url}
+              alt={member.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-muted">
+              <span className="text-muted-foreground">No Image</span>
+            </div>
+          )}
 
-      {/* Info Overlay */}
-      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-background/95 via-background/50 to-transparent p-4">
-        <h3 className="font-display text-xl font-bold text-gold-gradient">{member.name}</h3>
-        {member.location && (
-          <p className="text-sm text-muted-foreground">{member.location}</p>
-        )}
-        {member.bio && (
-          <p className="mt-2 line-clamp-2 text-sm text-foreground/80">{member.bio}</p>
-        )}
-
-        {/* Album Thumbnails */}
-        {albumImages.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto">
-            {albumImages.slice(0, 4).map((img) => (
-              <Dialog key={img.id}>
-                <DialogTrigger asChild>
-                  <button
-                    onClick={() => setSelectedImage(img.image_url)}
-                    className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-gold/30 transition-all hover:border-gold"
-                  >
-                    <img
-                      src={img.image_url}
-                      alt="Album"
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl border-gold/30 bg-background/95 p-2">
-                  <img
-                    src={img.image_url}
-                    alt="Album"
-                    className="h-auto w-full rounded"
-                  />
-                </DialogContent>
-              </Dialog>
-            ))}
-            {albumImages.length > 4 && (
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded border border-gold/30 bg-muted text-xs text-muted-foreground">
-                +{albumImages.length - 4}
-              </div>
-            )}
+          {/* Name Overlay - Top Left */}
+          <div className="absolute top-0 left-0 m-3">
+            <div className="px-3 py-1.5 rounded-md bg-background/80 backdrop-blur-sm border border-gold/30">
+              <span className="font-display text-sm md:text-base font-semibold text-gold">
+                {member.name}
+              </span>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Subtle Gold Glow on Hover */}
+          <div className="absolute inset-0 bg-gold/0 transition-all duration-300 group-hover:bg-gold/5" />
+        </div>
+
+        {/* Description Below Image */}
+        <div className="p-4 border-t border-gold/10">
+          {member.bio ? (
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+              {member.bio}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground/50 italic">
+              No description
+            </p>
+          )}
+        </div>
+      </button>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        member={member}
+      />
+    </>
   );
 }
