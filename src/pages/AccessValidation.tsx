@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import CrownIcon from '@/components/CrownIcon';
 import { ShieldX, Clock, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
@@ -17,7 +17,8 @@ interface AccessLink {
 }
 
 const AccessValidation = () => {
-  const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
   const navigate = useNavigate();
   const [state, setState] = useState<ValidationState>('loading');
   const [message, setMessage] = useState('');

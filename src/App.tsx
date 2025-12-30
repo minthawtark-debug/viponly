@@ -32,7 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/members" element={<Members />} />
             <Route path="/vip" element={<VIP />} />
-            <Route path="/access/:token" element={<AccessValidation />} />
+            <Route path="/access" element={<AccessValidation />} />
 
             {/* Admin routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

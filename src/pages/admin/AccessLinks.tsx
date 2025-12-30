@@ -60,7 +60,7 @@ const TIME_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const BASE_URL = 'https://vip-haven.vercel.app';
+const BASE_URL = import.meta.env.VITE_NEXT_PUBLIC_SITE_URL;
 
 export default function AccessLinks() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,7 +117,7 @@ export default function AccessLinks() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['access-links'] });
-      const link = `${BASE_URL}/access/${data.token}`;
+      const link = `${BASE_URL}/access?token=${data.token}`;
       setGeneratedLink(link);
       setGeneratedLinkData(data);
       toast.success('Access link generated successfully!');
@@ -332,13 +332,13 @@ export default function AccessLinks() {
                       <TableCell className="font-mono text-xs text-foreground">
                         <div className="flex items-center gap-2">
                           <span className="max-w-[200px] truncate">
-                            {`${BASE_URL}/access/${link.token}`}
+                            {`${BASE_URL}/access?token=${link.token}`}
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => copyToClipboard(`${BASE_URL}/access/${link.token}`)}
+                            onClick={() => copyToClipboard(`${BASE_URL}/access?token=${link.token}`)}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
