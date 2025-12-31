@@ -6,16 +6,6 @@ import { ShieldX, Clock, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-re
 
 type ValidationState = 'loading' | 'valid' | 'invalid' | 'used' | 'expired';
 
-interface AccessLink {
-  id: string;
-  token: string;
-  target_page: 'member' | 'vip';
-  expires_at: string | null;
-  is_used: boolean;
-  allow_share: boolean;
-  is_permanent: boolean;
-}
-
 const AccessValidation = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -32,68 +22,36 @@ const AccessValidation = () => {
       }
 
       try {
-        // Fetch the access link
-        const { data: link, error } = await supabase
-          .from('access_links')
-          .select('*')
-          .eq('token', token)
-          .maybeSingle();
+        // Call the validation API
+        const response = await fetch(`/api/validate-token?token=${encodeURIComponent(token)}`);
+        const result = await response.json();
 
-        if (error) {
-          console.error('Error fetching access link:', error);
-          setState('invalid');
-          setMessage('An error occurred while validating your link.');
-          return;
-        }
-
-        if (!link) {
-          setState('invalid');
-          setMessage('This access link is invalid or does not exist.');
-          return;
-        }
-
-        const accessLink = link as AccessLink;
-
-        // Check if link is already used (and sharing is not allowed)
-        if (accessLink.is_used && !accessLink.allow_share) {
-          setState('used');
-          setMessage('This link has already been used and cannot be accessed again.');
-          return;
-        }
-
-        // Check if link has expired (if not permanent)
-        if (!accessLink.is_permanent && accessLink.expires_at) {
-          const expiryDate = new Date(accessLink.expires_at);
-          if (expiryDate < new Date()) {
+        if (!response.ok) {
+          if (response.status === 403 && result.error === 'Access token has already been used') {
+            setState('used');
+            setMessage('This access link has already been used.');
+            return;
+          }
+          if (response.status === 403 && result.error === 'Access token has expired') {
             setState('expired');
             setMessage('This access link has expired.');
             return;
           }
+          setState('invalid');
+          setMessage(result.error || 'Invalid access token.');
+          return;
         }
 
-        // Link is valid!
+        // Token is valid!
         setState('valid');
 
-        // If one-time use and sharing disabled, mark as used
-        if (!accessLink.allow_share) {
-          await supabase
-            .from('access_links')
-            .update({ is_used: true })
-            .eq('id', accessLink.id);
-        }
-
         // Store access in session storage
-        sessionStorage.setItem('vip_access', 'true');
-        sessionStorage.setItem('target_page', accessLink.target_page);
+        sessionStorage.setItem('admin_access', 'true');
         sessionStorage.setItem('access_token', token);
 
         // Redirect after a brief success message
         setTimeout(() => {
-          if (accessLink.target_page === 'vip') {
-            navigate('/vip');
-          } else {
-            navigate('/members');
-          }
+          navigate('/admin');
         }, 1500);
 
       } catch (err) {

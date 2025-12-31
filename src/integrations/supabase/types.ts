@@ -14,36 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
-      access_links: {
+      admin_tokens: {
         Row: {
-          allow_share: boolean
+          access_token: string
           created_at: string
           expires_at: string | null
           id: string
-          is_permanent: boolean
-          is_used: boolean
-          target_page: Database["public"]["Enums"]["target_page_type"]
-          token: string
+          used: boolean
+          user_id: string | null
         }
         Insert: {
-          allow_share?: boolean
+          access_token: string
           created_at?: string
           expires_at?: string | null
           id?: string
-          is_permanent?: boolean
-          is_used?: boolean
-          target_page: Database["public"]["Enums"]["target_page_type"]
-          token: string
+          used?: boolean
+          user_id?: string | null
         }
         Update: {
-          allow_share?: boolean
+          access_token?: string
           created_at?: string
           expires_at?: string | null
           id?: string
-          is_permanent?: boolean
-          is_used?: boolean
-          target_page?: Database["public"]["Enums"]["target_page_type"]
-          token?: string
+          used?: boolean
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -154,7 +148,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      target_page_type: "member" | "vip"
     }
     CompositeTypes: {
       [_ in never]: never

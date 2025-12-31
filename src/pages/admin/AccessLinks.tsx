@@ -40,16 +40,12 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-type TargetPage = 'member' | 'vip';
-
-interface AccessLink {
+interface AdminToken {
   id: string;
-  token: string;
-  target_page: TargetPage;
+  access_token: string;
+  user_id: string | null;
   expires_at: string | null;
-  is_used: boolean;
-  allow_share: boolean;
-  is_permanent: boolean;
+  used: boolean;
   created_at: string;
 }
 
@@ -64,111 +60,98 @@ const BASE_URL = import.meta.env.VITE_NEXT_PUBLIC_SITE_URL;
 
 export default function AccessLinks() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [targetPage, setTargetPage] = useState<TargetPage>('member');
-  const [isPermanent, setIsPermanent] = useState(false);
   const [timeOption, setTimeOption] = useState('60');
   const [customMinutes, setCustomMinutes] = useState('');
-  const [allowShare, setAllowShare] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
-  const [generatedLinkData, setGeneratedLinkData] = useState<AccessLink | null>(null);
+  const [generatedTokenData, setGeneratedTokenData] = useState<AdminToken | null>(null);
 
   const queryClient = useQueryClient();
 
-  const { data: accessLinks = [], isLoading } = useQuery({
-    queryKey: ['access-links'],
+  const { data: adminTokens = [], isLoading } = useQuery({
+    queryKey: ['admin-tokens'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('access_links')
+        .from('admin_tokens')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as AccessLink[];
+      return data as AdminToken[];
     },
   });
 
   const createLinkMutation = useMutation({
     mutationFn: async () => {
-      const token = crypto.randomUUID();
-      let expiresAt: string | null = null;
+      const response = await fetch('/api/generate-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (!isPermanent) {
-        const minutes = timeOption === 'custom' ? parseInt(customMinutes) : parseInt(timeOption);
-        const expireDate = new Date();
-        expireDate.setMinutes(expireDate.getMinutes() + minutes);
-        expiresAt = expireDate.toISOString();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate token');
       }
 
-      const { data, error } = await supabase
-        .from('access_links')
-        .insert({
-          token,
-          target_page: targetPage,
-          expires_at: expiresAt,
-          is_permanent: isPermanent,
-          allow_share: allowShare,
-          is_used: false,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as AccessLink;
+      return await response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['access-links'] });
-      const link = `${BASE_URL}/access?token=${data.token}`;
-      setGeneratedLink(link);
-      setGeneratedLinkData(data);
+      queryClient.invalidateQueries({ queryKey: ['admin-tokens'] });
+      setGeneratedLink(data.accessLink);
+      setGeneratedTokenData({
+        id: '', // We'll get this from the query
+        access_token: data.token,
+        user_id: null,
+        expires_at: data.expiresAt,
+        used: false,
+        created_at: new Date().toISOString()
+      });
       toast.success('Access link generated successfully!');
     },
     onError: (error) => {
       console.error('Error creating link:', error);
-      toast.error('Failed to generate access link');
+      toast.error(error.message || 'Failed to generate access link');
     },
   });
 
   const revokeLinkMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('access_links')
-        .update({ is_used: true })
+        .from('admin_tokens')
+        .update({ used: true })
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['access-links'] });
-      toast.success('Link revoked successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-tokens'] });
+      toast.success('Token revoked successfully');
     },
     onError: () => {
-      toast.error('Failed to revoke link');
+      toast.error('Failed to revoke token');
     },
   });
 
   const deleteLinkMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('access_links')
+        .from('admin_tokens')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['access-links'] });
-      toast.success('Link deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-tokens'] });
+      toast.success('Token deleted successfully');
     },
     onError: () => {
-      toast.error('Failed to delete link');
+      toast.error('Failed to delete token');
     },
   });
 
   const handleGenerate = () => {
-    if (!isPermanent && timeOption === 'custom' && (!customMinutes || parseInt(customMinutes) <= 0)) {
-      toast.error('Please enter a valid number of minutes');
-      return;
-    }
     createLinkMutation.mutate();
   };
 
@@ -178,13 +161,10 @@ export default function AccessLinks() {
   };
 
   const resetModal = () => {
-    setTargetPage('member');
-    setIsPermanent(false);
     setTimeOption('60');
     setCustomMinutes('');
-    setAllowShare(false);
     setGeneratedLink(null);
-    setGeneratedLinkData(null);
+    setGeneratedTokenData(null);
   };
 
   const openModal = () => {
@@ -192,19 +172,18 @@ export default function AccessLinks() {
     setIsModalOpen(true);
   };
 
-  const getStatus = (link: AccessLink): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
-    if (link.is_used && !link.allow_share) {
+  const getStatus = (token: AdminToken): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+    if (token.used) {
       return { label: 'Used', variant: 'secondary' };
     }
-    if (!link.is_permanent && link.expires_at && new Date(link.expires_at) < new Date()) {
+    if (token.expires_at && new Date(token.expires_at) < new Date()) {
       return { label: 'Expired', variant: 'destructive' };
     }
     return { label: 'Active', variant: 'default' };
   };
 
-  const getTimeRemaining = (expiresAt: string | null, isPermanent: boolean): string => {
-    if (isPermanent) return 'Permanent';
-    if (!expiresAt) return 'N/A';
+  const getTimeRemaining = (expiresAt: string | null): string => {
+    if (!expiresAt) return 'No expiry';
     
     const now = new Date();
     const expiry = new Date(expiresAt);
@@ -225,17 +204,17 @@ export default function AccessLinks() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-primary">Access Links Manager</h1>
-          <p className="mt-1 text-muted-foreground">Generate and manage access links for Member and VIP pages</p>
+          <h1 className="font-display text-3xl font-bold text-primary">Access Tokens Manager</h1>
+          <p className="mt-1 text-muted-foreground">Generate and manage one-time access tokens for admin panel access</p>
         </div>
         <Button onClick={openModal} className="gap-2">
           <Plus className="h-4 w-4" />
-          Generate Access Link
+          Generate Access Token
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card className="border-border bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -244,7 +223,7 @@ export default function AccessLinks() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Links</p>
-                <p className="text-2xl font-bold text-foreground">{accessLinks.length}</p>
+                <p className="text-2xl font-bold text-foreground">{adminTokens.length}</p>
               </div>
             </div>
           </CardContent>
@@ -258,37 +237,7 @@ export default function AccessLinks() {
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {accessLinks.filter(l => getStatus(l).label === 'Active').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-500/10 p-2">
-                <Users className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Member Links</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {accessLinks.filter(l => l.target_page === 'member').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-500/10 p-2">
-                <Crown className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">VIP Links</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {accessLinks.filter(l => l.target_page === 'vip').length}
+                  {adminTokens.filter(t => getStatus(t).label === 'Active').length}
                 </p>
               </div>
             </div>
@@ -301,7 +250,7 @@ export default function AccessLinks() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <LinkIcon className="h-5 w-5" />
-            Access Links
+            Access Tokens
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -309,78 +258,42 @@ export default function AccessLinks() {
             <div className="py-8 text-center text-muted-foreground">Loading...</div>
           ) : accessLinks.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
-              No access links generated yet. Click "Generate Access Link" to create one.
+              No access tokens generated yet. Click "Generate Access Token" to create one.
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Generated URL</TableHead>
-                  <TableHead className="text-muted-foreground">Target</TableHead>
-                  <TableHead className="text-muted-foreground">Expiration</TableHead>
-                  <TableHead className="text-muted-foreground">Type</TableHead>
-                  <TableHead className="text-muted-foreground">Sharing</TableHead>
+                  <TableHead className="text-muted-foreground">Access Token</TableHead>
+                  <TableHead className="text-muted-foreground">Expires At</TableHead>
                   <TableHead className="text-muted-foreground">Status</TableHead>
                   <TableHead className="text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accessLinks.map((link) => {
-                  const status = getStatus(link);
+                {adminTokens.map((token) => {
+                  const status = getStatus(token);
                   return (
-                    <TableRow key={link.id} className="border-border hover:bg-muted/50">
+                    <TableRow key={token.id} className="border-border hover:bg-muted/50">
                       <TableCell className="font-mono text-xs text-foreground">
                         <div className="flex items-center gap-2">
                           <span className="max-w-[200px] truncate">
-                            {`${BASE_URL}/access?token=${link.token}`}
+                            {token.access_token}
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => copyToClipboard(`${BASE_URL}/access?token=${link.token}`)}
+                            onClick={() => copyToClipboard(token.access_token)}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={link.target_page === 'vip' ? 'default' : 'secondary'}>
-                          {link.target_page === 'vip' ? (
-                            <Crown className="mr-1 h-3 w-3" />
-                          ) : (
-                            <Users className="mr-1 h-3 w-3" />
-                          )}
-                          {link.target_page.toUpperCase()}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-foreground">
                         <div className="flex items-center gap-1">
-                          {link.is_permanent ? (
-                            <Infinity className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Timer className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <span>{getTimeRemaining(link.expires_at, link.is_permanent)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-border">
-                          {link.is_permanent ? 'Permanent' : 'One-Time'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {link.allow_share ? (
-                          <div className="flex items-center gap-1 text-green-500">
-                            <Share2 className="h-4 w-4" />
-                            <span className="text-xs">Allowed</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Lock className="h-4 w-4" />
-                            <span className="text-xs">Blocked</span>
-                          </div>
-                        )}
+                          <Timer className="h-4 w-4 text-muted-foreground" />
+                          <span>{getTimeRemaining(token.expires_at)}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={status.variant}>
@@ -390,13 +303,14 @@ export default function AccessLinks() {
                           {status.label}
                         </Badge>
                       </TableCell>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {status.label === 'Active' && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => revokeLinkMutation.mutate(link.id)}
+                              onClick={() => revokeLinkMutation.mutate(token.id)}
                               className="border-destructive/50 text-destructive hover:bg-destructive/10"
                             >
                               Revoke
@@ -406,7 +320,7 @@ export default function AccessLinks() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => deleteLinkMutation.mutate(link.id)}
+                            onClick={() => deleteLinkMutation.mutate(token.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -426,7 +340,7 @@ export default function AccessLinks() {
         <DialogContent className="max-w-md border-border bg-card">
           <DialogHeader>
             <DialogTitle className="font-display text-xl text-primary">
-              {generatedLink ? 'Link Generated!' : 'Generate Access Link'}
+            {generatedLink ? 'Token Generated!' : 'Generate Access Token'}
             </DialogTitle>
           </DialogHeader>
 
@@ -448,28 +362,22 @@ export default function AccessLinks() {
               {/* Link Details */}
               <div className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Target Page:</span>
-                  <Badge variant={generatedLinkData?.target_page === 'vip' ? 'default' : 'secondary'}>
-                    {generatedLinkData?.target_page?.toUpperCase()}
-                  </Badge>
+                  <span className="text-muted-foreground">Access Token:</span>
+                  <span className="text-foreground font-mono text-xs">
+                    {generatedTokenData?.access_token}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Expiration:</span>
                   <span className="text-foreground">
-                    {getTimeRemaining(generatedLinkData?.expires_at || null, generatedLinkData?.is_permanent || false)}
+                    {getTimeRemaining(generatedTokenData?.expires_at || null)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Type:</span>
                   <Badge variant="outline">
-                    {generatedLinkData?.is_permanent ? 'Permanent' : 'One-Time'}
+                    One-Time Use
                   </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Sharing:</span>
-                  <span className={generatedLinkData?.allow_share ? 'text-green-500' : 'text-muted-foreground'}>
-                    {generatedLinkData?.allow_share ? 'Allowed' : 'Blocked'}
-                  </span>
                 </div>
               </div>
 
@@ -484,86 +392,13 @@ export default function AccessLinks() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Target Page */}
+              {/* Description */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium text-foreground">Target Page *</Label>
-                <RadioGroup value={targetPage} onValueChange={(v) => setTargetPage(v as TargetPage)}>
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/50">
-                    <RadioGroupItem value="member" id="member" />
-                    <Label htmlFor="member" className="flex flex-1 cursor-pointer items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-500" />
-                      <span>Member Page</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/50">
-                    <RadioGroupItem value="vip" id="vip" />
-                    <Label htmlFor="vip" className="flex flex-1 cursor-pointer items-center gap-2">
-                      <Crown className="h-4 w-4 text-amber-500" />
-                      <span>VIP Page</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Link Type */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium text-foreground">Link Type</Label>
-                <RadioGroup value={isPermanent ? 'permanent' : 'onetime'} onValueChange={(v) => setIsPermanent(v === 'permanent')}>
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/50">
-                    <RadioGroupItem value="onetime" id="onetime" />
-                    <Label htmlFor="onetime" className="flex flex-1 cursor-pointer items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>One-Time Use</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/50">
-                    <RadioGroupItem value="permanent" id="permanent" />
-                    <Label htmlFor="permanent" className="flex flex-1 cursor-pointer items-center gap-2">
-                      <Infinity className="h-4 w-4 text-primary" />
-                      <span>Permanent Link</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Time Limit */}
-              {!isPermanent && (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-foreground">Time Limit</Label>
-                  <RadioGroup value={timeOption} onValueChange={setTimeOption}>
-                    {TIME_OPTIONS.map((option) => (
-                      <div key={option.value} className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/50">
-                        <RadioGroupItem value={option.value} id={`time-${option.value}`} />
-                        <Label htmlFor={`time-${option.value}`} className="flex-1 cursor-pointer">
-                          {option.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                  {timeOption === 'custom' && (
-                    <div className="mt-2">
-                      <Input
-                        type="number"
-                        placeholder="Enter minutes"
-                        value={customMinutes}
-                        onChange={(e) => setCustomMinutes(e.target.value)}
-                        min="1"
-                        className="border-border bg-input"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sharing Permission */}
-              <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-medium text-foreground">Allow Sharing</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {allowShare ? 'Link can be used on multiple devices' : 'First use locks the link'}
-                  </p>
-                </div>
-                <Switch checked={allowShare} onCheckedChange={setAllowShare} />
+                <Label className="text-sm font-medium text-foreground">Generate Access Token</Label>
+                <p className="text-sm text-muted-foreground">
+                  Generate a one-time use access token that expires in 1 hour. 
+                  This token can be used to access the admin panel.
+                </p>
               </div>
 
               <DialogFooter>
@@ -571,7 +406,7 @@ export default function AccessLinks() {
                   Cancel
                 </Button>
                 <Button onClick={handleGenerate} disabled={createLinkMutation.isPending}>
-                  {createLinkMutation.isPending ? 'Generating...' : 'Generate Link'}
+                  {createLinkMutation.isPending ? 'Generating...' : 'Generate Token'}
                 </Button>
               </DialogFooter>
             </div>

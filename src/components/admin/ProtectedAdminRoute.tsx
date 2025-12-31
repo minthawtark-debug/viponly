@@ -16,11 +16,14 @@ export function ProtectedAdminRoute({ children }: ProtectedAdminRouteProps) {
     );
   }
 
-  if (!user) {
+  // Check if user has temporary admin access via token
+  const hasTempAccess = sessionStorage.getItem('admin_access') === 'true';
+
+  if (!user && !hasTempAccess) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !hasTempAccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

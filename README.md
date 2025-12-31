@@ -45,7 +45,33 @@ Create a `.env` file in the root directory with the following variables:
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_key
 VITE_NEXT_PUBLIC_SITE_URL=https://viponly.vercel.app
+SUPABASE_SECRET_KEY=your_supabase_secret_key
 ```
+
+**Note**: `SUPABASE_SECRET_KEY` should be set in Vercel environment variables for production, not in the `.env` file.
+
+## Admin Access System
+
+The application includes a secure admin access system:
+
+- **Admin Authentication**: Full admin users can log in via `/admin/login`
+- **Temporary Access Tokens**: Generate one-time use tokens that expire in 1 hour
+- **Token Validation**: Tokens are validated server-side and marked as used after access
+
+### API Endpoints
+
+- `POST /api/generate-token`: Generates a new access token
+- `GET /api/validate-token?token=<token>`: Validates an access token
+
+### Database Schema
+
+**admin_tokens table**:
+- `id`: UUID primary key
+- `access_token`: Unique token string
+- `user_id`: Optional admin user ID
+- `expires_at`: Token expiration timestamp
+- `used`: Boolean flag for one-time use
+- `created_at`: Creation timestamp
 
 ## Deployment
 
