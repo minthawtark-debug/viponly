@@ -44,6 +44,7 @@ const App = () => (
                 </ProtectedAdminRoute>
               }
             >
+              <Route index element={<AdminDashboard />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="members" element={<MemberList />} />
               <Route path="members/new" element={<MemberCreate />} />
