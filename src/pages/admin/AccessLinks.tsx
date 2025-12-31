@@ -294,6 +294,7 @@ export default function AccessLinks() {
                         <div className="flex items-center gap-1">
                           <Timer className="h-4 w-4 text-muted-foreground" />
                           <span>{getTimeRemaining(token.expires_at)}</span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={status.variant}>

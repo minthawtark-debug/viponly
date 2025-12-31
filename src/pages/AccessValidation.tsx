@@ -45,13 +45,14 @@ const AccessValidation = () => {
         // Token is valid!
         setState('valid');
 
-        // Store access in session storage
-        sessionStorage.setItem('admin_access', 'true');
+        // Store access in session storage for VIP access
+        sessionStorage.setItem('vip_access', 'true');
+        sessionStorage.setItem('target_page', 'vip');
         sessionStorage.setItem('access_token', token);
 
         // Redirect after a brief success message
         setTimeout(() => {
-          navigate('/admin');
+          navigate('/vip');
         }, 1500);
 
       } catch (err) {
