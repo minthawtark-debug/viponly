@@ -304,7 +304,6 @@ export default function AccessLinks() {
                           {status.label}
                         </Badge>
                       </TableCell>
-                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {status.label === 'Active' && (
